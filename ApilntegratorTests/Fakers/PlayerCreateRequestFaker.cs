@@ -1,4 +1,4 @@
-using ApilntegratorTests.Models;
+using ApilntegratorTests.Generated;
 using Bogus;
 
 namespace ApilntegratorTests.Fakers;

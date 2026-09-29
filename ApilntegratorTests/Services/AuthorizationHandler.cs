@@ -1,5 +1,5 @@
+using ApilntegratorTests.Generated;
 using ApilntegratorTests.Json.Appsettings;
-using ApilntegratorTests.Models;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;

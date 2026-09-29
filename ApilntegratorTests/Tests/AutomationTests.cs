@@ -1,5 +1,5 @@
 using ApilntegratorTests.Fakers;
-using ApilntegratorTests.Models;
+using ApilntegratorTests.Generated;
 using ApilntegratorTests.Services;
 using System.Net;
 using System.Text.Json;
