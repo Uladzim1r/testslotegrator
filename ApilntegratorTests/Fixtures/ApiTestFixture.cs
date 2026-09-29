@@ -1,5 +1,5 @@
-using ApilntegratorTests.Configuration;
 using ApilntegratorTests.Interfaces;
+using ApilntegratorTests.Json.Appsettings;
 using ApilntegratorTests.Models;
 using Microsoft.Extensions.Configuration;
 using Refit;
@@ -8,7 +8,7 @@ namespace ApilntegratorTests.Fixtures;
 
 public sealed class ApiTestFixture : IAsyncLifetime
 {
-    public ApiSettings Settings { get; } = new();
+    public ApiSetting Settings { get; private set; } = null!;
     public IAutomationApi Api { get; private set; } = null!;
     public string Token { get; private set; } = string.Empty;
 
@@ -17,10 +17,10 @@ public sealed class ApiTestFixture : IAsyncLifetime
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false)
-            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.local.json", optional: true)
             .Build();
 
-        configuration.GetSection("ApiSettings").Bind(Settings);
+        Settings = Appsetting.FromConfig(configuration).ApiSettings ?? new ApiSetting();
     }
 
     public async ValueTask InitializeAsync()
