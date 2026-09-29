@@ -1,61 +1,117 @@
+using System.Net;
+using ApiIntegratorTests.Extensions;
+using ApiIntegratorTests.Fakers;
 using ApiIntegratorTests.Fixtures;
 using ApiIntegratorTests.Generated;
 using ApiIntegratorTests.Interfaces;
+using Refit;
 using Shouldly;
 
 namespace ApiIntegratorTests.Tests;
 
-[Collection("Players")]
+[Collection(nameof(CreateResourcesCollection))]
+[TestCaseOrderer(typeof(TestCaseOrderer))]
 public class IntegratorTests
 {
-    private readonly IIntegratorAutomationApi _api;
-    private readonly CreateResoucesFixture _fixture;
+    private const int PlayersCount = 12;
 
-    public IntegratorTests(IIntegratorAutomationApi api, CreateResoucesFixture fixture)
+    private readonly IIntegratorAutomationApi _api;
+    private readonly CreateResoucesFixture _createdResourceFixture;
+    private readonly PlayerCreateRequestFaker _playerFaker;
+
+    public IntegratorTests(IIntegratorAutomationApi api, CreateResoucesFixture createdResourceFixture)
     {
         _api = api;
-        _fixture = fixture;
+        _createdResourceFixture = createdResourceFixture;
+        _playerFaker = new PlayerCreateRequestFaker();
     }
 
-    [Fact]
-    public async Task FullAutomationFlow()
+    [Fact, TestOrder(1)]
+    public async Task CreatePlayers_Returns201_AndMatchesSpec()
     {
-        // Fixture has already created 12 players.
-        _fixture.Players.Count.ShouldBe(12);
+        // Arrange
+        var createRequests = _playerFaker.Generate(PlayersCount);
 
-        foreach (var player in _fixture.Players)
+        // Act
+        var createResponses = new List<IApiResponse<PlayerResponseDTO>>();
+        foreach (var request in createRequests)
         {
-            player.ShouldNotBeNull("Create player response should contain a player object.");
-            player.Id.ShouldBeGreaterThan(0, "Created player should have a positive id.");
-            player.Username.ShouldNotBeNullOrWhiteSpace("Created player should have a username.");
-            player.Email.ShouldNotBeNullOrWhiteSpace("Created player should have an email.");
-            player.Name.ShouldNotBeNullOrWhiteSpace("Created player should have a name.");
-            player.Surname.ShouldNotBeNullOrWhiteSpace("Created player should have a surname.");
+            var playerAsync = await _api.CreatePlayerAsync(request);
+            createResponses.Add(playerAsync);
         }
 
-        // Verify the created players are present in the full list.
-        var allPlayers = await _api.GetAllPlayersAsync();
+        // Assert
+        createResponses.Count.ShouldBe(PlayersCount);
+        for (var i = 0; i < createRequests.Count; i++)
+        {
+            var createResponse = createResponses[i];
+            createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+            createResponse.Content.ShouldNotBeNull();
+            createResponse.Content.ShouldBe(createRequests[i]);
 
-        allPlayers.ShouldNotBeNull("GetAll response should contain a list of players.");
-        allPlayers.ShouldNotBeEmpty("GetAll should return at least one player.");
-
-        var createdPlayerIds = _fixture.Players.Select(p => p.Id).ToHashSet();
-        var foundCreatedPlayers = allPlayers.Where(p => createdPlayerIds.Contains(p.Id)).ToList();
-        foundCreatedPlayers.Count.ShouldBe(12, "All 12 created players should be present in GetAll response.");
+            _createdResourceFixture.AddCreatePlayer(createResponse.Content);
+        }
     }
 
-    [Fact]
-    public async Task GetPlayerByEmail_ShouldReturnProfile()
+    [Fact, TestOrder(2)]
+    public async Task GetPlayerByEmail_Returns200_AndMatchesSpec()
     {
-        var created = _fixture.Players.First();
+        // Arrange
+        var createRequest = _playerFaker.Generate();
 
-        var player = await _api.GetPlayerByEmailAsync(new PlayerRequestOneDTO { Email = created.Email });
+        // Act
+        var createResponse = await _api.CreatePlayerAsync(createRequest);
+        var getOneResponse = await _api.GetPlayerByEmailAsync(new PlayerRequestOneDTO
+        {
+            Email = createResponse.Content?.Email ?? string.Empty
+        });
 
-        player.ShouldNotBeNull();
-        player.Id.ShouldBe(created.Id);
-        player.Username.ShouldBe(created.Username);
-        player.Email.ShouldBe(created.Email);
-        player.Name.ShouldBe(created.Name);
-        player.Surname.ShouldBe(created.Surname);
+        // Assert
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        createResponse.Content.ShouldNotBeNull();
+        var createdPlayer = createResponse.Content;
+        createdPlayer.ShouldBe(createRequest);
+        _createdResourceFixture.AddCreatePlayer(createdPlayer);
+
+        getOneResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        getOneResponse.Content.ShouldNotBeNull();
+        var retrievedPlayer = getOneResponse.Content;
+        retrievedPlayer.ShouldBe(createdPlayer);
+    }
+
+    [Fact, TestOrder(3)]
+    public async Task GetAllPlayers_Returns200_SortedByName()
+    {
+        // Arrange
+        var createRequests = _playerFaker.Generate(3);
+        createRequests[0].Name = "Alice";
+        createRequests[1].Name = "Bob";
+        createRequests[2].Name = "Charlie";
+
+        // Act
+        var createResponses = new List<IApiResponse<PlayerResponseDTO>>();
+        foreach (var request in createRequests)
+        {
+            createResponses.Add(await _api.CreatePlayerAsync(request));
+        }
+
+        var getAllResponse = await _api.GetAllPlayersAsync();
+
+        // Assert
+        foreach (var createResponse in createResponses)
+        {
+            createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+            createResponse.Content.ShouldNotBeNull();
+            _createdResourceFixture.AddCreatePlayer(createResponse.Content);
+        }
+
+        getAllResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        getAllResponse.Content.ShouldNotBeNull();
+
+        var allPlayers = getAllResponse.Content;
+        allPlayers.Length.ShouldBeGreaterThanOrEqualTo(createRequests.Count);
+
+        var sortedByName = allPlayers.OrderBy(p => p.Name).ToArray();
+        allPlayers.ShouldBe(sortedByName);
     }
 }

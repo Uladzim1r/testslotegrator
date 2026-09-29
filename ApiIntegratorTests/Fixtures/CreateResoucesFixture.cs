@@ -13,8 +13,12 @@ public sealed class CreateResoucesFixture : IAsyncLifetime
         _api = api;
     }
 
-    public ConcurrentBag<PlayerResponseDTO> Players { get; } = new();
+    private ConcurrentBag<PlayerResponseDTO> Players { get; } = new();
 
+    public void AddCreatePlayer(PlayerResponseDTO player)
+    {
+        Players.Add(player);
+    }
 
     public async ValueTask DisposeAsync()
     {

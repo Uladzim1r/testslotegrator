@@ -6,13 +6,13 @@ namespace ApiIntegratorTests.Interfaces;
 public interface IIntegratorAutomationApi
 {
     [Post("/api/automationTask/create")]
-    Task<PlayerResponseDTO> CreatePlayerAsync([Body] PlayerRequestDTO request);
+    Task<IApiResponse<PlayerResponseDTO>> CreatePlayerAsync([Body] PlayerRequestDTO request);
 
     [Post("/api/automationTask/getOne")]
-    Task<PlayerResponseDTO> GetPlayerByEmailAsync([Body] PlayerRequestOneDTO request);
+    Task<IApiResponse<PlayerResponseDTO>> GetPlayerByEmailAsync([Body] PlayerRequestOneDTO request);
 
     [Get("/api/automationTask/getAll")]
-    Task<PlayerResponseDTO[]> GetAllPlayersAsync();
+    Task<IApiResponse<PlayerResponseDTO[]>> GetAllPlayersAsync();
 
     [Delete("/api/automationTask/deleteOne/{id}")]
     Task<PlayerResponseDTO> DeletePlayerAsync(int id);
