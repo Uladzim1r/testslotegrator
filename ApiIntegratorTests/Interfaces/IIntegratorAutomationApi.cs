@@ -15,5 +15,5 @@ public interface IIntegratorAutomationApi
     Task<IApiResponse<PlayerResponseDTO[]>> GetAllPlayersAsync();
 
     [Delete("/api/automationTask/deleteOne/{id}")]
-    Task<PlayerResponseDTO> DeletePlayerAsync(int id);
+    Task<IApiResponse<PlayerResponseDTO>> DeletePlayerAsync(string id);
 }

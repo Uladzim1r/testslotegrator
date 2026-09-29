@@ -41,7 +41,7 @@ public sealed class AuthorizationHandler : DelegatingHandler
         };
 
         var loginResponse = await _authApi.LoginAsync(loginRequest);
-        var token = loginResponse.Access_token;
+        var token = loginResponse.AccessToken;
 
         if (string.IsNullOrWhiteSpace(token))
         {

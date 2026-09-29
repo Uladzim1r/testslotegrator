@@ -10,11 +10,12 @@ public static class ValidationExtentions
         actual.ShouldNotBeNull();
         expected.ShouldNotBeNull();
 
-        actual.Id.ShouldBeGreaterThan(0);
+        actual.Id.ShouldNotBeNullOrWhiteSpace();
         actual.Username.ShouldBe(expected.Username);
         actual.Email.ShouldBe(expected.Email);
         actual.Name.ShouldBe(expected.Name);
         actual.Surname.ShouldBe(expected.Surname);
+        actual.Currency_code.ShouldBe(expected.Currency_code);
     }
 
     public static void ShouldBe(this PlayerResponseDTO actual, PlayerResponseDTO expected)
