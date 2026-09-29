@@ -4,6 +4,7 @@ using ApilntegratorTests.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Refit;
 
 namespace ApilntegratorTests;
@@ -25,11 +26,29 @@ public class Startup
     {
         var apiSetting = Appsetting.FromConfig(context.Configuration).ApiSettings ?? new ApiSetting();
         services.AddSingleton(apiSetting);
-        services.AddSingleton<IAutomationApi>(_ => RestService.For<IAutomationApi>(apiSetting.BaseUrl));
 
-        services.AddSingleton<IAuthenticationService, AuthenticationService>();
+        services.AddLogging(builder => builder.AddConsole());
+
+        services.AddSingleton<AuthorizationHandler>();
+        services.AddSingleton<LoggingHandler>();
+        services.AddSingleton<IAutomationApi>(provider =>
+        {
+            var httpClientHandler = new HttpClientHandler();
+
+            var loggingHandler = provider.GetRequiredService<LoggingHandler>();
+            loggingHandler.InnerHandler = httpClientHandler;
+
+            var authorizationHandler = provider.GetRequiredService<AuthorizationHandler>();
+            authorizationHandler.InnerHandler = loggingHandler;
+
+            var client = new HttpClient(authorizationHandler)
+            {
+                BaseAddress = new Uri(apiSetting.BaseUrl)
+            };
+
+            return RestService.For<IAutomationApi>(client);
+        });
+
         services.AddSingleton<IAutomationTaskApi, AutomationTaskApi>();
-
-        services.AddHostedService<AuthenticationInitializer>();
     }
 }

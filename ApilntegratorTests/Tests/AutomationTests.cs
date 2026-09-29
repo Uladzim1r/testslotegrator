@@ -1,3 +1,4 @@
+using ApilntegratorTests.Fakers;
 using ApilntegratorTests.Models;
 using ApilntegratorTests.Services;
 using System.Net;
@@ -9,34 +10,23 @@ namespace ApilntegratorTests.Tests;
 public class AutomationTests
 {
     private readonly IAutomationTaskApi _api;
-    private readonly IAuthenticationService _authenticationService;
 
-    public AutomationTests(IAutomationTaskApi api, IAuthenticationService authenticationService)
+    public AutomationTests(IAutomationTaskApi api)
     {
         _api = api;
-        _authenticationService = authenticationService;
     }
 
     [Fact]
     public async Task FullAutomationFlow()
     {
-        // Step 1: Authentication is initialized by the hosted service; verify token is available.
-        Assert.False(string.IsNullOrWhiteSpace(_authenticationService.Token), "Bearer token should be present after login.");
+        // Authorization is handled transparently by AuthorizationHandler.
 
-        // Step 2: Register 12 players.
+        // Step 1: Register 12 players.
+        var playerFaker = new PlayerCreateRequestFaker();
         var createdPlayers = new List<PlayerResponse>();
         for (int i = 0; i < 12; i++)
         {
-            var uniqueSuffix = Guid.NewGuid().ToString("N")[..8];
-            var request = new PlayerCreateRequest
-            {
-                Username = $"player_{uniqueSuffix}",
-                Password = $"P@ssw0rd!{i}",
-                Email = $"player_{uniqueSuffix}@example.com",
-                Name = $"Player{i}",
-                Surname = "Test",
-                Currency = "EUR"
-            };
+            var request = playerFaker.Generate();
 
             var response = await _api.CreatePlayerAsync(request);
 
@@ -56,7 +46,7 @@ public class AutomationTests
 
         Assert.Equal(12, createdPlayers.Count);
 
-        // Step 3: Retrieve profile data for a created player.
+        // Step 2: Retrieve profile data for a created player.
         var getOneResponse = await _api.GetPlayerAsync();
 
         Assert.True(
@@ -64,7 +54,7 @@ public class AutomationTests
             $"GetOne should return 200. Actual: {getOneResponse.StatusCode}, Error: {getOneResponse.Error?.Message}");
         Assert.NotNull(getOneResponse.Content);
 
-        // Step 4: Retrieve all users and verify they are sorted by name.
+        // Step 3: Retrieve all users and verify they are sorted by name.
         var getAllResponse = await _api.GetAllPlayersAsync();
 
         Assert.True(
@@ -82,7 +72,7 @@ public class AutomationTests
             allPlayers.SequenceEqual(sortedByName),
             $"Players should be sorted by name. Actual order: {JsonSerializer.Serialize(allPlayers.Select(p => p.Name))}");
 
-        // Step 5: Delete all previously created users.
+        // Step 4: Delete all previously created users.
         foreach (var player in createdPlayers)
         {
             var deleteResponse = await _api.DeletePlayerAsync(player.EffectiveId);

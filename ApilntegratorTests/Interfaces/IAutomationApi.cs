@@ -9,14 +9,14 @@ public interface IAutomationApi
     Task<IApiResponse<LoginResponse>> LoginAsync([Body] LoginRequest request);
 
     [Post("/api/automationTask/create")]
-    Task<IApiResponse<PlayerResponse>> CreatePlayerAsync([Body] PlayerCreateRequest request, [Header("Authorization")] string authorization);
+    Task<IApiResponse<PlayerResponse>> CreatePlayerAsync([Body] PlayerCreateRequest request);
 
     [Get("/api/automationTask/getOne")]
-    Task<IApiResponse<PlayerResponse>> GetPlayerAsync([Header("Authorization")] string authorization);
+    Task<IApiResponse<PlayerResponse>> GetPlayerAsync();
 
     [Get("/api/automationTask/getAll")]
-    Task<IApiResponse<PlayersListResponse>> GetAllPlayersAsync([Header("Authorization")] string authorization);
+    Task<IApiResponse<PlayersListResponse>> GetAllPlayersAsync();
 
     [Delete("/api/automationTask/deleteOne/{id}")]
-    Task<IApiResponse<object>> DeletePlayerAsync(string id, [Header("Authorization")] string authorization);
+    Task<IApiResponse<object>> DeletePlayerAsync(string id);
 }
