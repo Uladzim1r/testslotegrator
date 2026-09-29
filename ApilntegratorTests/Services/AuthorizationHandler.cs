@@ -1,20 +1,22 @@
 using ApilntegratorTests.Generated;
+using ApilntegratorTests.Interfaces;
 using ApilntegratorTests.Json.Appsettings;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 
 namespace ApilntegratorTests.Services;
 
 public sealed class AuthorizationHandler : DelegatingHandler
 {
     private readonly ApiSetting _settings;
+    private readonly IAuthApi _authApi;
     private readonly ILogger<AuthorizationHandler> _logger;
     private readonly Lazy<Task<string>> _tokenLazy;
 
-    public AuthorizationHandler(ApiSetting settings, ILogger<AuthorizationHandler> logger)
+    public AuthorizationHandler(ApiSetting settings, IAuthApi authApi, ILogger<AuthorizationHandler> logger)
     {
         _settings = settings;
+        _authApi = authApi;
         _logger = logger;
         _tokenLazy = new Lazy<Task<string>>(GetTokenAsync);
     }
@@ -29,17 +31,7 @@ public sealed class AuthorizationHandler : DelegatingHandler
 
     private async Task<string> GetTokenAsync()
     {
-        if (InnerHandler is null)
-        {
-            throw new InvalidOperationException($"{nameof(AuthorizationHandler)}.{nameof(InnerHandler)} must be set before sending requests.");
-        }
-
         _logger.LogInformation("Requesting authentication token from {LoginEndpoint}", "/api/tester/login");
-
-        using var loginClient = new HttpClient(InnerHandler, disposeHandler: false)
-        {
-            BaseAddress = new Uri(_settings.BaseUrl)
-        };
 
         var loginRequest = new LoginRequest
         {
@@ -47,10 +39,7 @@ public sealed class AuthorizationHandler : DelegatingHandler
             Password = _settings.Password
         };
 
-        var response = await loginClient.PostAsJsonAsync("/api/tester/login", loginRequest);
-        response.EnsureSuccessStatusCode();
-
-        var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+        var loginResponse = await _authApi.LoginAsync(loginRequest);
         var token = loginResponse?.EffectiveToken;
 
         if (string.IsNullOrWhiteSpace(token))

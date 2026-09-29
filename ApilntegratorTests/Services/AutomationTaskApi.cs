@@ -1,5 +1,5 @@
-using ApilntegratorTests.Interfaces;
 using ApilntegratorTests.Generated;
+using ApilntegratorTests.Interfaces;
 using Refit;
 
 namespace ApilntegratorTests.Services;

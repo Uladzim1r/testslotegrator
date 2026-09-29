@@ -5,9 +5,6 @@ namespace ApilntegratorTests.Interfaces;
 
 public interface IAutomationApi
 {
-    [Post("/api/tester/login")]
-    Task<LoginResponse> LoginAsync([Body] LoginRequest request);
-
     [Post("/api/automationTask/create")]
     Task<IApiResponse<PlayerResponse>> CreatePlayerAsync([Body] PlayerCreateRequest request);
 

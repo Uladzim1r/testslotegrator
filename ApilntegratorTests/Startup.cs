@@ -29,25 +29,17 @@ public class Startup
 
         services.AddLogging(builder => builder.AddConsole());
 
+        services.AddTransient<LoggingHandler>();
         services.AddSingleton<AuthorizationHandler>();
-        services.AddSingleton<LoggingHandler>();
-        services.AddSingleton<IAutomationApi>(provider =>
-        {
-            var httpClientHandler = new HttpClientHandler();
 
-            var loggingHandler = provider.GetRequiredService<LoggingHandler>();
-            loggingHandler.InnerHandler = httpClientHandler;
+        services.AddRefitClient<IAuthApi>()
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri(apiSetting.BaseUrl))
+            .AddHttpMessageHandler<LoggingHandler>();
 
-            var authorizationHandler = provider.GetRequiredService<AuthorizationHandler>();
-            authorizationHandler.InnerHandler = loggingHandler;
-
-            var client = new HttpClient(authorizationHandler)
-            {
-                BaseAddress = new Uri(apiSetting.BaseUrl)
-            };
-
-            return RestService.For<IAutomationApi>(client);
-        });
+        services.AddRefitClient<IAutomationApi>()
+            .ConfigureHttpClient(client => client.BaseAddress = new Uri(apiSetting.BaseUrl))
+            .AddHttpMessageHandler<LoggingHandler>()
+            .AddHttpMessageHandler<AuthorizationHandler>();
 
         services.AddSingleton<IAutomationTaskApi, AutomationTaskApi>();
     }
