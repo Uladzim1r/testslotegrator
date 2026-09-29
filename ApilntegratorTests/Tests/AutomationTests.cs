@@ -1,6 +1,7 @@
 using ApilntegratorTests.Fakers;
 using ApilntegratorTests.Generated;
 using ApilntegratorTests.Services;
+using Shouldly;
 using System.Net;
 using System.Text.Json;
 using Xunit;
@@ -30,46 +31,41 @@ public class AutomationTests
 
             var response = await _api.CreatePlayerAsync(request);
 
-            Assert.True(
-                response.StatusCode == HttpStatusCode.Created,
+            response.StatusCode.ShouldBe(
+                HttpStatusCode.Created,
                 $"Create player should return 201. Actual: {response.StatusCode}, Error: {response.Error?.Message}");
-            Assert.NotNull(response.Content);
-            Assert.False(
-                string.IsNullOrWhiteSpace(response.Content.EffectiveId),
-                "Created player response should contain an id.");
-            Assert.False(
-                string.IsNullOrWhiteSpace(response.Content.Username),
-                "Created player response should contain a username.");
+            response.Content.ShouldNotBeNull();
+            response.Content.EffectiveId.ShouldNotBeNullOrWhiteSpace("Created player response should contain an id.");
+            response.Content.Username.ShouldNotBeNullOrWhiteSpace("Created player response should contain a username.");
 
             createdPlayers.Add(response.Content);
         }
 
-        Assert.Equal(12, createdPlayers.Count);
+        createdPlayers.Count.ShouldBe(12);
 
         // Step 2: Retrieve profile data for a created player.
         var getOneResponse = await _api.GetPlayerAsync();
 
-        Assert.True(
-            getOneResponse.StatusCode == HttpStatusCode.OK,
+        getOneResponse.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
             $"GetOne should return 200. Actual: {getOneResponse.StatusCode}, Error: {getOneResponse.Error?.Message}");
-        Assert.NotNull(getOneResponse.Content);
+        getOneResponse.Content.ShouldNotBeNull();
 
         // Step 3: Retrieve all users and verify they are sorted by name.
         var getAllResponse = await _api.GetAllPlayersAsync();
 
-        Assert.True(
-            getAllResponse.StatusCode == HttpStatusCode.OK,
+        getAllResponse.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
             $"GetAll should return 200. Actual: {getAllResponse.StatusCode}, Error: {getAllResponse.Error?.Message}");
-        Assert.NotNull(getAllResponse.Content);
+        getAllResponse.Content.ShouldNotBeNull();
 
         var allPlayers = getAllResponse.Content.EffectiveItems;
-        Assert.NotEmpty(allPlayers);
+        allPlayers.ShouldNotBeEmpty();
 
         var sortedByName = allPlayers
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        Assert.True(
-            allPlayers.SequenceEqual(sortedByName),
+        allPlayers.SequenceEqual(sortedByName).ShouldBeTrue(
             $"Players should be sorted by name. Actual order: {JsonSerializer.Serialize(allPlayers.Select(p => p.Name))}");
 
         // Step 4: Delete all previously created users.
@@ -77,9 +73,9 @@ public class AutomationTests
         {
             var deleteResponse = await _api.DeletePlayerAsync(player.EffectiveId);
 
-            Assert.True(
-                deleteResponse.StatusCode == HttpStatusCode.OK || deleteResponse.StatusCode == HttpStatusCode.NoContent,
-                $"Delete player should return 200 or 204. Actual: {deleteResponse.StatusCode}, Error: {deleteResponse.Error?.Message}");
+            (deleteResponse.StatusCode == HttpStatusCode.OK || deleteResponse.StatusCode == HttpStatusCode.NoContent)
+                .ShouldBeTrue(
+                    $"Delete player should return 200 or 204. Actual: {deleteResponse.StatusCode}, Error: {deleteResponse.Error?.Message}");
         }
     }
 }
