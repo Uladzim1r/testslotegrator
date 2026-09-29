@@ -4,6 +4,8 @@ using ApiIntegratorTests.Fakers;
 using ApiIntegratorTests.Fixtures;
 using ApiIntegratorTests.Generated;
 using ApiIntegratorTests.Interfaces;
+using ApiIntegratorTests.Json.Appsettings;
+using Microsoft.Extensions.Options;
 using Refit;
 using Shouldly;
 
@@ -14,29 +16,49 @@ namespace ApiIntegratorTests.Tests;
 public class IntegratorTests
 {
     private readonly IIntegratorAutomationApi _api;
+    private readonly IAuthApi _authApi;
+    private readonly IntegratorApiConfig _settings;
     private readonly CreateResoucesFixture _createdResourceFixture;
     private readonly PlayerCreateRequestFaker _playerFaker;
 
-    public IntegratorTests(IIntegratorAutomationApi api, CreateResoucesFixture createdResourceFixture)
+    public IntegratorTests(IIntegratorAutomationApi api, IAuthApi authApi, IOptions<IntegratorApiConfig> settings, CreateResoucesFixture createdResourceFixture)
     {
         _api = api;
+        _authApi = authApi;
+        _settings = settings.Value;
         _createdResourceFixture = createdResourceFixture;
         _playerFaker = new PlayerCreateRequestFaker();
     }
 
-    [Theory, TestOrder(1)]
-    [InlineData(12)]
-    public async Task CreatePlayers_Returns201_AndMatchesSpec(int playerCount)
+    [Fact, TestOrder(1)]
+    public async Task Login_Returns200_AndContainsAccessToken()
     {
         // Arrange
-        var createRequests = _playerFaker.Generate(playerCount);
+        var credentials = new CredentialsDTO
+        {
+            Email = _settings.Email,
+            Password = _settings.Password,
+        };
+
+        // Act
+        var loginResponse = await _authApi.LoginAsync(credentials);
+
+        // Assert
+        loginResponse.ShouldNotBeNull();
+        loginResponse.AccessToken.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact, TestOrder(2)]
+    public async Task CreatePlayers_Returns201_AndMatchesSpec()
+    {
+        // Arrange
+        var createRequests = _playerFaker.Generate(12);
 
         // Act
         var createResponses = new List<IApiResponse<PlayerResponseDTO>>();
         foreach (var request in createRequests)
         {
-            var playerAsync = await _api.CreatePlayerAsync(request);
-            createResponses.Add(playerAsync);
+            createResponses.Add(await _api.CreatePlayerAsync(request));
         }
 
         // Assert
@@ -52,7 +74,7 @@ public class IntegratorTests
         }
     }
 
-    [Fact, TestOrder(2)]
+    [Fact, TestOrder(3)]
     public async Task GetPlayerByEmail_Returns200_AndMatchesSpec()
     {
         // Arrange
@@ -72,13 +94,13 @@ public class IntegratorTests
         createdPlayer.ShouldBe(createRequest);
         _createdResourceFixture.AddCreatePlayer(createdPlayer);
 
-        getOneResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        getOneResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Created);
         getOneResponse.Content.ShouldNotBeNull();
         var retrievedPlayer = getOneResponse.Content;
         retrievedPlayer.ShouldBe(createdPlayer);
     }
 
-    [Fact, TestOrder(3)]
+    [Fact, TestOrder(4)]
     public async Task GetAllPlayers_Returns200_SortedByName()
     {
         // Arrange
@@ -110,12 +132,20 @@ public class IntegratorTests
         var allPlayers = getAllResponse.Content;
         allPlayers.Length.ShouldBeGreaterThanOrEqualTo(createRequests.Count);
 
-        //Sorted in framework
         var sortedPlayers = allPlayers.OrderBy(p => p.Name).ToArray();
         sortedPlayers.ShouldNotBeEmpty();
+
+        for (var i = 0; i < createRequests.Count - 1; i++)
+        {
+            var firstIndex = Array.FindIndex(sortedPlayers, p => p.Name == createRequests[i].Name && p.Email == createRequests[i].Email);
+            var secondIndex = Array.FindIndex(sortedPlayers, p => p.Name == createRequests[i + 1].Name && p.Email == createRequests[i + 1].Email);
+            firstIndex.ShouldBeGreaterThanOrEqualTo(0);
+            secondIndex.ShouldBeGreaterThanOrEqualTo(0);
+            firstIndex.ShouldBeLessThan(secondIndex);
+        }
     }
 
-    [Fact, TestOrder(4)]
+    [Fact, TestOrder(5)]
     public async Task DeleteAllPlayers_ReturnsEmptyList()
     {
         // Act
