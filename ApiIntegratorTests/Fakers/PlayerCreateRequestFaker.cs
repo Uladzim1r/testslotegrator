@@ -7,7 +7,7 @@ public sealed class PlayerCreateRequestFaker : Faker<PlayerRequestDTO>
 {
     public PlayerCreateRequestFaker()
     {
-        RuleFor(x => x.Username, f => $"player_{f.Random.Guid().ToString("N")[..8]}");
+        RuleFor(x => x.Username, f => $"TEST_player_{f.Random.Guid().ToString("N")[..8]}");
         RuleFor(x => x.Password_change, f => $"P@ssw0rd!{f.Random.Int(10, 99)}");
         RuleFor(x => x.Password_repeat, (f, x) => x.Password_change);
         RuleFor(x => x.Email, (f, x) => $"{x.Username}@example.com");
