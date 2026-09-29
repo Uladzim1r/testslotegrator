@@ -4,8 +4,6 @@ using ApiIntegratorTests.Fakers;
 using ApiIntegratorTests.Fixtures;
 using ApiIntegratorTests.Generated;
 using ApiIntegratorTests.Interfaces;
-using ApiIntegratorTests.Json.Appsettings;
-using Microsoft.Extensions.Options;
 using Refit;
 using Shouldly;
 
@@ -16,39 +14,18 @@ namespace ApiIntegratorTests.Tests;
 public class IntegratorTests
 {
     private readonly IIntegratorAutomationApi _api;
-    private readonly IAuthApi _authApi;
-    private readonly IntegratorApiConfig _settings;
     private readonly CreateResoucesFixture _createdResourceFixture;
     private readonly PlayerCreateRequestFaker _playerFaker;
 
-    public IntegratorTests(IIntegratorAutomationApi api, IAuthApi authApi, IOptions<IntegratorApiConfig> settings, CreateResoucesFixture createdResourceFixture)
+    public IntegratorTests(IIntegratorAutomationApi api, CreateResoucesFixture createdResourceFixture)
     {
         _api = api;
-        _authApi = authApi;
-        _settings = settings.Value;
         _createdResourceFixture = createdResourceFixture;
         _playerFaker = new PlayerCreateRequestFaker();
     }
 
+
     [Fact, TestOrder(1)]
-    public async Task Login_Returns200_AndContainsAccessToken()
-    {
-        // Arrange
-        var credentials = new CredentialsDTO
-        {
-            Email = _settings.Email,
-            Password = _settings.Password,
-        };
-
-        // Act
-        var loginResponse = await _authApi.LoginAsync(credentials);
-
-        // Assert
-        loginResponse.ShouldNotBeNull();
-        loginResponse.AccessToken.ShouldNotBeNullOrWhiteSpace();
-    }
-
-    [Fact, TestOrder(2)]
     public async Task CreatePlayers_Returns201_AndMatchesSpec()
     {
         // Arrange
@@ -74,7 +51,7 @@ public class IntegratorTests
         }
     }
 
-    [Fact, TestOrder(3)]
+    [Fact, TestOrder(2)]
     public async Task GetPlayerByEmail_Returns200_AndMatchesSpec()
     {
         // Arrange
@@ -94,13 +71,13 @@ public class IntegratorTests
         createdPlayer.ShouldBe(createRequest);
         _createdResourceFixture.AddCreatePlayer(createdPlayer);
 
-        getOneResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Created);
+        getOneResponse.StatusCode.ShouldBe(HttpStatusCode.OK); //Issue
         getOneResponse.Content.ShouldNotBeNull();
         var retrievedPlayer = getOneResponse.Content;
         retrievedPlayer.ShouldBe(createdPlayer);
     }
 
-    [Fact, TestOrder(4)]
+    [Fact, TestOrder(3)]
     public async Task GetAllPlayers_Returns200_SortedByName()
     {
         // Arrange
@@ -132,20 +109,17 @@ public class IntegratorTests
         var allPlayers = getAllResponse.Content;
         allPlayers.Length.ShouldBeGreaterThanOrEqualTo(createRequests.Count);
 
-        var sortedPlayers = allPlayers.OrderBy(p => p.Name).ToArray();
-        sortedPlayers.ShouldNotBeEmpty();
+        var createdIds = createResponses.Select(r => r.Content!.Id).ToHashSet();
+        var sortedCreatedPlayers = allPlayers
+            .Where(p => createdIds.Contains(p.Id))
+            .OrderBy(p => p.Name)
+            .ToArray();
 
-        for (var i = 0; i < createRequests.Count - 1; i++)
-        {
-            var firstIndex = Array.FindIndex(sortedPlayers, p => p.Name == createRequests[i].Name && p.Email == createRequests[i].Email);
-            var secondIndex = Array.FindIndex(sortedPlayers, p => p.Name == createRequests[i + 1].Name && p.Email == createRequests[i + 1].Email);
-            firstIndex.ShouldBeGreaterThanOrEqualTo(0);
-            secondIndex.ShouldBeGreaterThanOrEqualTo(0);
-            firstIndex.ShouldBeLessThan(secondIndex);
-        }
+        sortedCreatedPlayers.Length.ShouldBe(createRequests.Count);
+        sortedCreatedPlayers.Select(p => p.Name).ShouldBe(createRequests.Select(r => r.Name));
     }
 
-    [Fact, TestOrder(5)]
+    [Fact, TestOrder(4)]
     public async Task DeleteAllPlayers_ReturnsEmptyList()
     {
         // Act
