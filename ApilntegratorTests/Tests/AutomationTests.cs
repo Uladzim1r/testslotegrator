@@ -1,25 +1,27 @@
-using ApilntegratorTests.Fixtures;
 using ApilntegratorTests.Models;
+using ApilntegratorTests.Services;
 using System.Net;
 using System.Text.Json;
 using Xunit;
 
 namespace ApilntegratorTests.Tests;
 
-public class AutomationTests : IClassFixture<ApiTestFixture>
+public class AutomationTests
 {
-    private readonly ApiTestFixture _fixture;
+    private readonly IAutomationTaskApi _api;
+    private readonly IAuthenticationService _authenticationService;
 
-    public AutomationTests(ApiTestFixture fixture)
+    public AutomationTests(IAutomationTaskApi api, IAuthenticationService authenticationService)
     {
-        _fixture = fixture;
+        _api = api;
+        _authenticationService = authenticationService;
     }
 
     [Fact]
     public async Task FullAutomationFlow()
     {
-        // Step 1: Login is already performed in the fixture; verify token is available.
-        Assert.False(string.IsNullOrWhiteSpace(_fixture.Token), "Bearer token should be present after login.");
+        // Step 1: Authentication is initialized by the hosted service; verify token is available.
+        Assert.False(string.IsNullOrWhiteSpace(_authenticationService.Token), "Bearer token should be present after login.");
 
         // Step 2: Register 12 players.
         var createdPlayers = new List<PlayerResponse>();
@@ -36,7 +38,7 @@ public class AutomationTests : IClassFixture<ApiTestFixture>
                 Currency = "EUR"
             };
 
-            var response = await _fixture.Api.CreatePlayerAsync(request, _fixture.Token);
+            var response = await _api.CreatePlayerAsync(request);
 
             Assert.True(
                 response.StatusCode == HttpStatusCode.Created,
@@ -55,8 +57,7 @@ public class AutomationTests : IClassFixture<ApiTestFixture>
         Assert.Equal(12, createdPlayers.Count);
 
         // Step 3: Retrieve profile data for a created player.
-        var firstPlayerId = createdPlayers.First().EffectiveId;
-        var getOneResponse = await _fixture.Api.GetPlayerAsync(_fixture.Token);
+        var getOneResponse = await _api.GetPlayerAsync();
 
         Assert.True(
             getOneResponse.StatusCode == HttpStatusCode.OK,
@@ -64,7 +65,7 @@ public class AutomationTests : IClassFixture<ApiTestFixture>
         Assert.NotNull(getOneResponse.Content);
 
         // Step 4: Retrieve all users and verify they are sorted by name.
-        var getAllResponse = await _fixture.Api.GetAllPlayersAsync(_fixture.Token);
+        var getAllResponse = await _api.GetAllPlayersAsync();
 
         Assert.True(
             getAllResponse.StatusCode == HttpStatusCode.OK,
@@ -84,7 +85,7 @@ public class AutomationTests : IClassFixture<ApiTestFixture>
         // Step 5: Delete all previously created users.
         foreach (var player in createdPlayers)
         {
-            var deleteResponse = await _fixture.Api.DeletePlayerAsync(player.EffectiveId, _fixture.Token);
+            var deleteResponse = await _api.DeletePlayerAsync(player.EffectiveId);
 
             Assert.True(
                 deleteResponse.StatusCode == HttpStatusCode.OK || deleteResponse.StatusCode == HttpStatusCode.NoContent,
