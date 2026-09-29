@@ -1,18 +1,16 @@
 using ApilntegratorTests.Fakers;
 using ApilntegratorTests.Generated;
-using ApilntegratorTests.Services;
+using ApilntegratorTests.Interfaces;
 using Shouldly;
-using System.Net;
 using System.Text.Json;
-using Xunit;
 
 namespace ApilntegratorTests.Tests;
 
 public class AutomationTests
 {
-    private readonly IAutomationTaskApi _api;
+    private readonly IItegratorAutomationApi _api;
 
-    public AutomationTests(IAutomationTaskApi api)
+    public AutomationTests(IItegratorAutomationApi api)
     {
         _api = api;
     }
@@ -22,45 +20,50 @@ public class AutomationTests
     {
         // Authorization is handled transparently by AuthorizationHandler.
 
-        // Step 1: Register 12 players.
+        // Step 1: Register 12 players and validate the response properties.
         var playerFaker = new PlayerCreateRequestFaker();
         var createdPlayers = new List<PlayerResponse>();
         for (int i = 0; i < 12; i++)
         {
             var request = playerFaker.Generate();
 
-            var response = await _api.CreatePlayerAsync(request);
+            var created = await _api.CreatePlayerAsync(request);
 
-            response.StatusCode.ShouldBe(
-                HttpStatusCode.Created,
-                $"Create player should return 201. Actual: {response.StatusCode}, Error: {response.Error?.Message}");
-            response.Content.ShouldNotBeNull();
-            response.Content.EffectiveId.ShouldNotBeNullOrWhiteSpace("Created player response should contain an id.");
-            response.Content.Username.ShouldNotBeNullOrWhiteSpace("Created player response should contain a username.");
+            created.ShouldNotBeNull("Create player response should contain a player object.");
+            created.EffectiveId.ShouldNotBeNullOrWhiteSpace("Created player should have a non-empty id.");
+            created.Username.ShouldBe(request.Username, "Created player username should match the request.");
+            created.Email.ShouldBe(request.Email, "Created player email should match the request.");
+            created.Name.ShouldBe(request.Name, "Created player name should match the request.");
+            created.Surname.ShouldBe(request.Surname, "Created player surname should match the request.");
+            created.Currency.ShouldBe(request.Currency, "Created player currency should match the request.");
 
-            createdPlayers.Add(response.Content);
+            createdPlayers.Add(created);
         }
 
         createdPlayers.Count.ShouldBe(12);
 
-        // Step 2: Retrieve profile data for a created player.
-        var getOneResponse = await _api.GetPlayerAsync();
+        // Step 2: Retrieve profile data for a created player and validate its shape.
+        var profile = await _api.GetPlayerAsync();
 
-        getOneResponse.StatusCode.ShouldBe(
-            HttpStatusCode.OK,
-            $"GetOne should return 200. Actual: {getOneResponse.StatusCode}, Error: {getOneResponse.Error?.Message}");
-        getOneResponse.Content.ShouldNotBeNull();
+        profile.ShouldNotBeNull("GetOne response should contain a player profile.");
+        profile.EffectiveId.ShouldNotBeNullOrWhiteSpace("Player profile should have a non-empty id.");
+        profile.Username.ShouldNotBeNullOrWhiteSpace("Player profile should have a username.");
+        profile.Email.ShouldNotBeNullOrWhiteSpace("Player profile should have an email.");
+        profile.Name.ShouldNotBeNullOrWhiteSpace("Player profile should have a name.");
+        profile.Surname.ShouldNotBeNullOrWhiteSpace("Player profile should have a surname.");
+        profile.Currency.ShouldNotBeNullOrWhiteSpace("Player profile should have a currency.");
 
-        // Step 3: Retrieve all users and verify they are sorted by name.
-        var getAllResponse = await _api.GetAllPlayersAsync();
+        // Step 3: Retrieve all users and verify content plus sorting by name.
+        var playersList = await _api.GetAllPlayersAsync();
 
-        getAllResponse.StatusCode.ShouldBe(
-            HttpStatusCode.OK,
-            $"GetAll should return 200. Actual: {getAllResponse.StatusCode}, Error: {getAllResponse.Error?.Message}");
-        getAllResponse.Content.ShouldNotBeNull();
+        playersList.ShouldNotBeNull("GetAll response should contain a list of players.");
 
-        var allPlayers = getAllResponse.Content.EffectiveItems;
-        allPlayers.ShouldNotBeEmpty();
+        var allPlayers = playersList.EffectiveItems;
+        allPlayers.ShouldNotBeEmpty("GetAll should return at least one player.");
+
+        var createdPlayerIds = createdPlayers.Select(p => p.EffectiveId).ToHashSet();
+        var foundCreatedPlayers = allPlayers.Where(p => createdPlayerIds.Contains(p.EffectiveId)).ToList();
+        foundCreatedPlayers.Count.ShouldBe(12, "All 12 created players should be present in GetAll response.");
 
         var sortedByName = allPlayers
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
@@ -68,14 +71,24 @@ public class AutomationTests
         allPlayers.SequenceEqual(sortedByName).ShouldBeTrue(
             $"Players should be sorted by name. Actual order: {JsonSerializer.Serialize(allPlayers.Select(p => p.Name))}");
 
-        // Step 4: Delete all previously created users.
+        // Step 4: Delete all previously created users and verify removal.
         foreach (var player in createdPlayers)
         {
-            var deleteResponse = await _api.DeletePlayerAsync(player.EffectiveId);
+            await _api.DeletePlayerAsync(player.EffectiveId);
+        }
 
-            (deleteResponse.StatusCode == HttpStatusCode.OK || deleteResponse.StatusCode == HttpStatusCode.NoContent)
-                .ShouldBeTrue(
-                    $"Delete player should return 200 or 204. Actual: {deleteResponse.StatusCode}, Error: {deleteResponse.Error?.Message}");
+        var playersListAfterDelete = await _api.GetAllPlayersAsync();
+        playersListAfterDelete.ShouldNotBeNull();
+
+        var remainingPlayerIds = playersListAfterDelete.EffectiveItems
+            .Select(p => p.EffectiveId)
+            .ToHashSet();
+
+        foreach (var player in createdPlayers)
+        {
+            remainingPlayerIds.ShouldNotContain(
+                player.EffectiveId,
+                $"Deleted player {player.EffectiveId} should no longer appear in GetAll response.");
         }
     }
 }

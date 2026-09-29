@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Refit;
 
 namespace ApilntegratorTests;
@@ -24,23 +25,26 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services, HostBuilderContext context)
     {
-        var apiSetting = Appsetting.FromConfig(context.Configuration).ApiSettings ?? new ApiSetting();
-        services.AddSingleton(apiSetting);
-
         services.AddLogging(builder => builder.AddConsole());
-
-        services.AddTransient<LoggingHandler>();
+        services.AddOptions<ApiSetting>().Bind(context.Configuration.GetSection(nameof(ApiSetting)));
         services.AddSingleton<AuthorizationHandler>();
+        services.AddSingleton<LoggingHandler>();
 
         services.AddRefitClient<IAuthApi>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri(apiSetting.BaseUrl))
+            .ConfigureHttpClient((serviceProvider, client) =>
+            {
+                var baseUrl = serviceProvider.GetRequiredService<IOptions<ApiSetting>>().Value.BaseUrl;
+                client.BaseAddress = new Uri(baseUrl);
+            })
             .AddHttpMessageHandler<LoggingHandler>();
 
-        services.AddRefitClient<IAutomationApi>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri(apiSetting.BaseUrl))
+        services.AddRefitClient<IItegratorAutomationApi>()
+            .ConfigureHttpClient((serviceProvider, client) =>
+            {
+                var baseUrl = serviceProvider.GetRequiredService<IOptions<ApiSetting>>().Value.BaseUrl;
+                client.BaseAddress = new Uri(baseUrl);
+            })
             .AddHttpMessageHandler<LoggingHandler>()
             .AddHttpMessageHandler<AuthorizationHandler>();
-
-        services.AddSingleton<IAutomationTaskApi, AutomationTaskApi>();
     }
 }
