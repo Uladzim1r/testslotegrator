@@ -10,8 +10,10 @@ using Refit;
 
 namespace ApilntegratorTests;
 
+// ReSharper disable once UnusedType.Global
 public class Startup
 {
+    // ReSharper disable once UnusedMember.Global
     public void ConfigureHost(IHostBuilder hostBuilder)
     {
         hostBuilder.ConfigureAppConfiguration(config =>
@@ -23,28 +25,29 @@ public class Startup
         });
     }
 
+    // ReSharper disable once UnusedMember.Global
     public void ConfigureServices(IServiceCollection services, HostBuilderContext context)
     {
         services.AddLogging(builder => builder.AddConsole());
-        services.AddOptions<ApiSetting>().Bind(context.Configuration.GetSection(nameof(ApiSetting)));
+        services.AddOptions<IntegratorApiConfig>().Bind(context.Configuration.GetSection(nameof(IntegratorApiConfig)));
         services.AddSingleton<AuthorizationHandler>();
         services.AddSingleton<LoggingHandler>();
 
         services.AddRefitClient<IAuthApi>()
             .ConfigureHttpClient((serviceProvider, client) =>
             {
-                var baseUrl = serviceProvider.GetRequiredService<IOptions<ApiSetting>>().Value.BaseUrl;
+                var baseUrl = serviceProvider.GetRequiredService<IOptions<IntegratorApiConfig>>().Value.BaseUrl;
                 client.BaseAddress = new Uri(baseUrl);
-            })
-            .AddHttpMessageHandler<LoggingHandler>();
+            });
+            //.AddHttpMessageHandler<LoggingHandler>();
 
         services.AddRefitClient<IItegratorAutomationApi>()
             .ConfigureHttpClient((serviceProvider, client) =>
             {
-                var baseUrl = serviceProvider.GetRequiredService<IOptions<ApiSetting>>().Value.BaseUrl;
+                var baseUrl = serviceProvider.GetRequiredService<IOptions<IntegratorApiConfig>>().Value.BaseUrl;
                 client.BaseAddress = new Uri(baseUrl);
             })
-            .AddHttpMessageHandler<LoggingHandler>()
+            //.AddHttpMessageHandler<LoggingHandler>()
             .AddHttpMessageHandler<AuthorizationHandler>();
     }
 }

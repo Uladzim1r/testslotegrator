@@ -1,27 +1,30 @@
 using ApilntegratorTests.Generated;
 using ApilntegratorTests.Interfaces;
-using ApilntegratorTests.Json.Appsettings;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
+using ApilntegratorTests.Json.Appsettings;
+using Microsoft.Extensions.Options;
 
 namespace ApilntegratorTests.Services;
 
 public sealed class AuthorizationHandler : DelegatingHandler
 {
-    private readonly ApiSetting _settings;
+    private readonly IntegratorApiConfig _settings;
     private readonly IAuthApi _authApi;
     private readonly ILogger<AuthorizationHandler> _logger;
     private readonly Lazy<Task<string>> _tokenLazy;
 
-    public AuthorizationHandler(ApiSetting settings, IAuthApi authApi, ILogger<AuthorizationHandler> logger)
+    public AuthorizationHandler(IOptions<IntegratorApiConfig> integratorApiConfig, IAuthApi authApi,
+        ILogger<AuthorizationHandler> logger)
     {
-        _settings = settings;
+        _settings = integratorApiConfig.Value;
         _authApi = authApi;
         _logger = logger;
         _tokenLazy = new Lazy<Task<string>>(GetTokenAsync);
     }
 
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        CancellationToken cancellationToken)
     {
         _logger.LogDebug("Attaching authorization header to {Method} {RequestUri}", request.Method, request.RequestUri);
         var token = await _tokenLazy.Value;
@@ -31,16 +34,14 @@ public sealed class AuthorizationHandler : DelegatingHandler
 
     private async Task<string> GetTokenAsync()
     {
-        _logger.LogInformation("Requesting authentication token from {LoginEndpoint}", "/api/tester/login");
-
         var loginRequest = new LoginRequest
         {
             Username = _settings.Username,
-            Password = _settings.Password
+            Password = _settings.Password,
         };
 
         var loginResponse = await _authApi.LoginAsync(loginRequest);
-        var token = loginResponse?.EffectiveToken;
+        var token = loginResponse.Access_token;
 
         if (string.IsNullOrWhiteSpace(token))
         {

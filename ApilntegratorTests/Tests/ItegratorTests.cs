@@ -6,11 +6,11 @@ using System.Text.Json;
 
 namespace ApilntegratorTests.Tests;
 
-public class AutomationTests
+public class ItegratorTests
 {
     private readonly IItegratorAutomationApi _api;
 
-    public AutomationTests(IItegratorAutomationApi api)
+    public ItegratorTests(IItegratorAutomationApi api)
     {
         _api = api;
     }
@@ -30,7 +30,7 @@ public class AutomationTests
             var created = await _api.CreatePlayerAsync(request);
 
             created.ShouldNotBeNull("Create player response should contain a player object.");
-            created.EffectiveId.ShouldNotBeNullOrWhiteSpace("Created player should have a non-empty id.");
+            created.Id.ShouldNotBeNullOrWhiteSpace("Created player should have a non-empty id.");
             created.Username.ShouldBe(request.Username, "Created player username should match the request.");
             created.Email.ShouldBe(request.Email, "Created player email should match the request.");
             created.Name.ShouldBe(request.Name, "Created player name should match the request.");
@@ -46,7 +46,7 @@ public class AutomationTests
         var profile = await _api.GetPlayerAsync();
 
         profile.ShouldNotBeNull("GetOne response should contain a player profile.");
-        profile.EffectiveId.ShouldNotBeNullOrWhiteSpace("Player profile should have a non-empty id.");
+        profile.Id.ShouldNotBeNullOrWhiteSpace("Player profile should have a non-empty id.");
         profile.Username.ShouldNotBeNullOrWhiteSpace("Player profile should have a username.");
         profile.Email.ShouldNotBeNullOrWhiteSpace("Player profile should have an email.");
         profile.Name.ShouldNotBeNullOrWhiteSpace("Player profile should have a name.");
@@ -58,11 +58,11 @@ public class AutomationTests
 
         playersList.ShouldNotBeNull("GetAll response should contain a list of players.");
 
-        var allPlayers = playersList.EffectiveItems;
+        var allPlayers = playersList.Players;
         allPlayers.ShouldNotBeEmpty("GetAll should return at least one player.");
 
-        var createdPlayerIds = createdPlayers.Select(p => p.EffectiveId).ToHashSet();
-        var foundCreatedPlayers = allPlayers.Where(p => createdPlayerIds.Contains(p.EffectiveId)).ToList();
+        var createdPlayerIds = createdPlayers.Select(p => p.Id).ToHashSet();
+        var foundCreatedPlayers = allPlayers.Where(p => createdPlayerIds.Contains(p.Id)).ToList();
         foundCreatedPlayers.Count.ShouldBe(12, "All 12 created players should be present in GetAll response.");
 
         var sortedByName = allPlayers
@@ -74,21 +74,21 @@ public class AutomationTests
         // Step 4: Delete all previously created users and verify removal.
         foreach (var player in createdPlayers)
         {
-            await _api.DeletePlayerAsync(player.EffectiveId);
+            await _api.DeletePlayerAsync(player.Id);
         }
 
         var playersListAfterDelete = await _api.GetAllPlayersAsync();
         playersListAfterDelete.ShouldNotBeNull();
 
-        var remainingPlayerIds = playersListAfterDelete.EffectiveItems
-            .Select(p => p.EffectiveId)
+        var remainingPlayerIds = playersListAfterDelete.Data
+            .Select(p => p.Id)
             .ToHashSet();
 
         foreach (var player in createdPlayers)
         {
             remainingPlayerIds.ShouldNotContain(
-                player.EffectiveId,
-                $"Deleted player {player.EffectiveId} should no longer appear in GetAll response.");
+                player.Id,
+                $"Deleted player {player.Id} should no longer appear in GetAll response.");
         }
     }
 }
