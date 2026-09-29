@@ -36,16 +36,16 @@ public sealed class AuthorizationHandler : DelegatingHandler
     {
         var loginRequest = new LoginRequest
         {
-            Username = _settings.Username,
+            Email = _settings.Email,
             Password = _settings.Password,
         };
 
         var loginResponse = await _authApi.LoginAsync(loginRequest);
-        var token = loginResponse.Access_token;
+        var token = loginResponse.AccessToken;
 
         if (string.IsNullOrWhiteSpace(token))
         {
-            throw new InvalidOperationException("Login response did not contain a token.");
+            throw new InvalidOperationException("Login response did not contain an access token.");
         }
 
         _logger.LogInformation("Authentication token obtained successfully");

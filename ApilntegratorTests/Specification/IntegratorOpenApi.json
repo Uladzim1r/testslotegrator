@@ -24,7 +24,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Authenticated successfully",
             "content": {
               "application/json": {
@@ -64,33 +64,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayerResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/api/automationTask/getOne": {
-      "get": {
-        "tags": ["AutomationTask"],
-        "operationId": "GetPlayer",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Player profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlayerResponse"
+                  "$ref": "#/components/schemas/PlayerCreateResponse"
                 }
               }
             }
@@ -116,7 +90,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayersListResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerListItem"
+                  }
                 }
               }
             }
@@ -165,7 +142,7 @@
       "LoginRequest": {
         "type": "object",
         "properties": {
-          "username": {
+          "email": {
             "type": "string"
           },
           "password": {
@@ -176,13 +153,18 @@
       "LoginResponse": {
         "type": "object",
         "properties": {
-          "token": {
+          "accessToken": {
             "type": "string",
             "nullable": true
           },
-          "access_token": {
-            "type": "string",
-            "nullable": true
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "nullable": true
+              }
+            }
           }
         }
       },
@@ -213,13 +195,9 @@
           }
         }
       },
-      "PlayerResponse": {
+      "PlayerCreateResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "nullable": true
-          },
           "_id": {
             "type": "string",
             "nullable": true
@@ -240,34 +218,37 @@
             "type": "string",
             "nullable": true
           },
-          "currency": {
-            "type": "string",
+          "__v": {
+            "type": "integer",
             "nullable": true
           }
         }
       },
-      "PlayersListResponse": {
+      "PlayerListItem": {
         "type": "object",
         "properties": {
-          "players": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlayerResponse"
-            },
+          "id": {
+            "type": "string",
             "nullable": true
           },
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlayerResponse"
-            },
+          "username": {
+            "type": "string",
             "nullable": true
           },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlayerResponse"
-            },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "surname": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency_code": {
+            "type": "string",
             "nullable": true
           }
         }

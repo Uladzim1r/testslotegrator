@@ -3,16 +3,16 @@ using Refit;
 
 namespace ApilntegratorTests.Interfaces;
 
-public interface IItegratorAutomationApi
+public interface IIntegratorAutomationApi
 {
     [Post("/api/automationTask/create")]
-    Task<PlayerResponse> CreatePlayerAsync([Body] PlayerCreateRequest request);
+    Task<PlayerCreateResponse> CreatePlayerAsync([Body] PlayerCreateRequest request);
 
-    [Get("/api/automationTask/getOne")]
-    Task<PlayerResponse> GetPlayerAsync();
+    [Get("/api/automationTask/getOne/{id}")]
+    Task<PlayerListItem> GetPlayerAsync(string id);
 
     [Get("/api/automationTask/getAll")]
-    Task<PlayersListResponse> GetAllPlayersAsync();
+    Task<PlayerListItem[]> GetAllPlayersAsync();
 
     [Delete("/api/automationTask/deleteOne/{id}")]
     Task<IApiResponse> DeletePlayerAsync(string id);

@@ -41,7 +41,7 @@ public class Startup
             });
             //.AddHttpMessageHandler<LoggingHandler>();
 
-        services.AddRefitClient<IItegratorAutomationApi>()
+        services.AddRefitClient<IIntegratorAutomationApi>()
             .ConfigureHttpClient((serviceProvider, client) =>
             {
                 var baseUrl = serviceProvider.GetRequiredService<IOptions<IntegratorApiConfig>>().Value.BaseUrl;
