@@ -1,11 +1,11 @@
-using ApilntegratorTests.Generated;
-using ApilntegratorTests.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
-using ApilntegratorTests.Json.Appsettings;
+using ApiIntegratorTests.Generated;
+using ApiIntegratorTests.Interfaces;
+using ApiIntegratorTests.Json.Appsettings;
 using Microsoft.Extensions.Options;
 
-namespace ApilntegratorTests.Services;
+namespace ApiIntegratorTests.Services;
 
 public sealed class AuthorizationHandler : DelegatingHandler
 {
@@ -34,14 +34,14 @@ public sealed class AuthorizationHandler : DelegatingHandler
 
     private async Task<string> GetTokenAsync()
     {
-        var loginRequest = new LoginRequest
+        var loginRequest = new CredentialsDTO
         {
             Email = _settings.Email,
             Password = _settings.Password,
         };
 
         var loginResponse = await _authApi.LoginAsync(loginRequest);
-        var token = loginResponse.AccessToken;
+        var token = loginResponse.Access_token;
 
         if (string.IsNullOrWhiteSpace(token))
         {

@@ -47,7 +47,7 @@
   <ItemGroup>
     <OpenApiReference Include="Specification\IntegratorOpenApi.json">
       <CodeGenerator>NSwagCSharp</CodeGenerator>
-      <Namespace>ApilntegratorTests.Generated</Namespace>
+      <Namespace>ApiIntegratorTests.Generated</Namespace>
       <Options>/GenerateClientClasses:false /GenerateDtoTypes:true /GenerateExceptionClasses:false /GenerateOptionalPropertiesAsNullable:true /JsonLibrary:SystemTextJson</Options>
     </OpenApiReference>
   </ItemGroup>

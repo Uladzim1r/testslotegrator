@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Text;
 
-namespace ApilntegratorTests.Services;
+namespace ApiIntegratorTests.Services;
 
 public sealed class LoggingHandler : DelegatingHandler
 {
