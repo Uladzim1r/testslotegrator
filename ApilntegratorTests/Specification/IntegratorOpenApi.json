@@ -1,38 +1,52 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.3",
   "info": {
-    "title": "ApilntegratorTests API",
-    "version": "1.0.0"
+    "title": "Players API",
+    "version": "1.0",
+    "description": "Автоматизировать REST API-тесты на Java используя любой соответствующий инструмент (например RestAssured, Feign,\nRetrofit, Unirest и т.д. - мы в частности используем Feign и RestAssured):\n1. Получить токен пользователя (/api/tester/login) \\\n Ожидаемый результат: HTTP response code 200, ответ содержит токен пользователя \n\n 2. Зарегистрировать игроков (12 штук) (/api/automationTask/create) \\\nОжидаемый результат: HTTP response code 201, ответ соответствует документации\n\n 3. Запросить данные профиля созданного игрока (/api/automationTask/getOne) \\\nОжидаемый результат: HTTP response code 200, ответ соответствует документации\n\n 4. Запросить данные всех пользователей и отсортировать их по имени (/api/automationTask/getAll) \n\n 5. Удалить всех ранее созданных пользователей (/api/automationTask/deleteOne/{id}) \n\n 6. Запросить список всех пользователей и убедиться что он пустой (/api/automationTask/getAll)"
   },
-  "servers": [
+  "tags": [
     {
-      "url": "https://testslotegrator.com"
+      "name": "Authentication"
+    },
+    {
+      "name": "Players"
     }
   ],
   "paths": {
     "/api/tester/login": {
       "post": {
-        "tags": ["Authentication"],
-        "operationId": "Login",
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User login",
+        "security": [
+          {
+            "BasicAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
+                "$ref": "#/components/schemas/CredentialsDTO"
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Authenticated successfully",
+          "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/TokenDTO"
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request"
           },
           "401": {
             "description": "Unauthorized"
@@ -42,75 +56,134 @@
     },
     "/api/automationTask/create": {
       "post": {
-        "tags": ["AutomationTask"],
-        "operationId": "CreatePlayer",
+        "tags": [
+          "Players"
+        ],
+        "summary": "Registration user",
         "security": [
           {
-            "bearerAuth": []
+            "BearerAuth": []
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlayerCreateRequest"
+                "$ref": "#/components/schemas/PlayerRequestDTO"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Player created",
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayerCreateResponse"
+                  "$ref": "#/components/schemas/PlayerResponseDTO"
                 }
               }
             }
           },
+          "400": {
+            "description": "Bad request"
+          },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/automationTask/getOne": {
+      "post": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Get user by email",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerRequestOneDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       }
     },
     "/api/automationTask/getAll": {
       "get": {
-        "tags": ["AutomationTask"],
-        "operationId": "GetAllPlayers",
+        "tags": [
+          "Players"
+        ],
+        "summary": "Get all users",
         "security": [
           {
-            "bearerAuth": []
+            "BearerAuth": []
           }
         ],
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "List of players",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PlayerListItem"
-                  }
+                  "$ref": "#/components/schemas/PlayerResponseDTO"
                 }
               }
             }
           },
+          "400": {
+            "description": "Bad request"
+          },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       }
     },
     "/api/automationTask/deleteOne/{id}": {
       "delete": {
-        "tags": ["AutomationTask"],
-        "operationId": "DeletePlayer",
+        "tags": [
+          "Players"
+        ],
+        "summary": "Delete user by id",
         "security": [
           {
-            "bearerAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -119,19 +192,30 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "format": "int32",
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Player deleted"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerResponseDTO"
+                }
+              }
+            }
           },
-          "204": {
-            "description": "Player deleted"
+          "400": {
+            "description": "Bad request"
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       }
@@ -139,123 +223,159 @@
   },
   "components": {
     "schemas": {
-      "LoginRequest": {
+      "PlayerRequestDTO": {
+        "required": [
+          "currency_code",
+          "email",
+          "name",
+          "password_change",
+          "password_repeat",
+          "surname",
+          "username"
+        ],
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
-      },
-      "LoginResponse": {
-        "type": "object",
-        "properties": {
-          "accessToken": {
+          "currency_code": {
             "type": "string",
-            "nullable": true
-          },
-          "user": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "nullable": true
-              }
-            }
-          }
-        }
-      },
-      "PlayerCreateRequest": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
+            "nullable": false
           },
           "email": {
             "type": "string",
-            "nullable": true
+            "nullable": false
           },
           "name": {
             "type": "string",
-            "nullable": true
+            "nullable": false
+          },
+          "password_change": {
+            "minLength": 4,
+            "type": "string",
+            "nullable": false
+          },
+          "password_repeat": {
+            "minLength": 4,
+            "type": "string",
+            "nullable": false
           },
           "surname": {
             "type": "string",
-            "nullable": true
-          },
-          "currency": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "PlayerCreateResponse": {
-        "type": "object",
-        "properties": {
-          "_id": {
-            "type": "string",
-            "nullable": true
+            "nullable": false
           },
           "username": {
+            "minLength": 4,
             "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "surname": {
-            "type": "string",
-            "nullable": true
-          },
-          "__v": {
-            "type": "integer",
-            "nullable": true
+            "nullable": false
           }
         }
       },
-      "PlayerListItem": {
+      "PlayerRequestOneDTO": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": false
+          }
+        }
+      },
+      "CredentialsDTO": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": false
+          },
+          "password": {
+            "minLength": 4,
+            "type": "string",
+            "nullable": false
+          }
+        }
+      },
+      "CredentialsLoginDTO": {
+        "required": [
+          "grant_type"
+        ],
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "nullable": false
+          },
+          "password": {
+            "minLength": 4,
+            "type": "string"
+          },
+          "username": {
+            "minLength": 4,
+            "type": "string"
+          }
+        }
+      },
+      "TokenDTO": {
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "scope"
+        ],
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          }
+        }
+      },
+      "PlayerResponseDTO": {
+        "required": [
+          "id",
+          "currency_code",
+          "email",
+          "name",
+          "surname",
+          "username"
+        ],
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "nullable": true
+            "type": "integer"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "email": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "name": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "surname": {
-            "type": "string",
-            "nullable": true
-          },
-          "currency_code": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         }
       }
     },
     "securitySchemes": {
-      "bearerAuth": {
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "BearerAuth": {
         "type": "http",
         "scheme": "bearer"
       }
